@@ -3,6 +3,7 @@
 """
 赛博算命 - Flask 后端主程序
 初始化 Web 服务、整合路由与业务逻辑
+支持 MongoDB 数据库
 """
 
 import os
@@ -18,6 +19,17 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 # 导入业务模块
 from FiveMat import FiveElementsCalculator
 from urls import register_routes
+
+# 导入数据库服务
+try:
+    from db_service import (
+        db_service, config_service, user_service, 
+        query_service, knowledge_service, audit_service,
+        display_service, init_database, check_database
+    )
+    DB_AVAILABLE = True
+except ImportError:
+    DB_AVAILABLE = False
 
 # 创建 Flask 应用
 app = Flask(__name__)
@@ -308,6 +320,231 @@ def build_frontend_config(name, birth_date, result):
 
 # 注册额外路由
 register_routes(app)
+
+
+# ==================== 配置管理 API ====================
+
+@app.route('/api/config/<config_type>', methods=['GET'])
+def get_config(config_type):
+    """
+    获取配置数据
+    
+    Args:
+        config_type: 配置类型 (pattern/wuxing_mapping/industry_mapping/shensha_config/fortune_tags)
+    """
+    if not DB_AVAILABLE:
+        return jsonify({
+            'success': False,
+            'message': '数据库服务不可用'
+        }), 503
+    
+    try:
+        config_data = config_service.get_config(config_type)
+        
+        return jsonify({
+            'success': True,
+            'data': config_data
+        })
+    except Exception as e:
+        logger.error(f"获取配置失败: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+
+@app.route('/api/config/<config_type>', methods=['POST'])
+def update_config(config_type):
+    """
+    更新配置数据
+    
+    Args:
+        config_type: 配置类型
+    """
+    if not DB_AVAILABLE:
+        return jsonify({
+            'success': False,
+            'message': '数据库服务不可用'
+        }), 503
+    
+    try:
+        data = request.get_json()
+        config_name = data.get('name', config_type)
+        config_data = data.get('data', {})
+        
+        if not config_data:
+            return jsonify({
+                'success': False,
+                'message': '配置数据不能为空'
+            }), 400
+        
+        success = config_service.update_config(config_type, config_name, config_data)
+        
+        if success:
+            # 记录审计日志
+            audit_service.log(
+                operate_type='config_update',
+                operate_user=request.remote_addr,
+                operate_content=f'更新配置: {config_type}/{config_name}',
+                operate_ip=request.remote_addr
+            )
+            
+            return jsonify({
+                'success': True,
+                'message': '配置更新成功'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': '配置更新失败'
+            }), 500
+    except Exception as e:
+        logger.error(f"更新配置失败: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+
+@app.route('/api/config/clear-cache', methods=['POST'])
+def clear_config_cache():
+    """清除配置缓存"""
+    if not DB_AVAILABLE:
+        return jsonify({
+            'success': False,
+            'message': '数据库服务不可用'
+        }), 503
+    
+    try:
+        config_type = request.args.get('type', None)
+        config_service.clear_cache(config_type)
+        
+        return jsonify({
+            'success': True,
+            'message': f'缓存已清除: {config_type or "全部"}'
+        })
+    except Exception as e:
+        logger.error(f"清除缓存失败: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+
+# ==================== 知识库 API ====================
+
+@app.route('/api/knowledge/search', methods=['GET'])
+def search_knowledge():
+    """搜索知识库"""
+    if not DB_AVAILABLE:
+        return jsonify({
+            'success': False,
+            'message': '数据库服务不可用'
+        }), 503
+    
+    try:
+        keywords = request.args.get('keywords', '').split(',')
+        material_type = request.args.get('type', None)
+        limit = int(request.args.get('limit', 10))
+        
+        results = knowledge_service.search(keywords, material_type, limit)
+        
+        # 转换 ObjectId
+        for result in results:
+            result['_id'] = str(result['_id'])
+            if 'related_resource_ids' in result:
+                result['related_resource_ids'] = [str(rid) for rid in result['related_resource_ids']]
+        
+        return jsonify({
+            'success': True,
+            'data': results,
+            'count': len(results)
+        })
+    except Exception as e:
+        logger.error(f"搜索知识库失败: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+
+# ==================== 数据库状态 API ====================
+
+@app.route('/api/db/status', methods=['GET'])
+def db_status():
+    """获取数据库状态"""
+    status = {
+        'available': DB_AVAILABLE,
+        'connected': False,
+        'collections': {}
+    }
+    
+    if DB_AVAILABLE:
+        status['connected'] = db_service.is_connected()
+        
+        if status['connected']:
+            try:
+                collections = db_service.db.list_collection_names()
+                for collection in collections:
+                    status['collections'][collection] = db_service.db[collection].count_documents({})
+            except Exception as e:
+                status['error'] = str(e)
+    
+    return jsonify({
+        'success': True,
+        'data': status
+    })
+
+
+@app.route('/api/db/init', methods=['POST'])
+def init_db():
+    """初始化数据库"""
+    if not DB_AVAILABLE:
+        return jsonify({
+            'success': False,
+            'message': '数据库服务不可用'
+        }), 503
+    
+    try:
+        from db_init import DatabaseInitializer
+        
+        initializer = DatabaseInitializer()
+        success = initializer.run()
+        
+        if success:
+            return jsonify({
+                'success': True,
+                'message': '数据库初始化成功'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': '数据库初始化失败'
+            }), 500
+    except Exception as e:
+        logger.error(f"初始化数据库失败: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
+
+
+# ==================== 应用启动初始化 ====================
+
+def init_app():
+    """应用启动时初始化"""
+    logger.info("初始化应用...")
+    
+    # 初始化数据库连接
+    if DB_AVAILABLE:
+        if init_database():
+            logger.info("数据库连接成功")
+        else:
+            logger.warning("数据库连接失败，将使用内存缓存")
+
+
+# 在应用启动时调用初始化
+init_app()
 
 
 # ==================== 主程序入口 ====================

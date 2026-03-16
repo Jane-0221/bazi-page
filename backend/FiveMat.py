@@ -3,11 +3,24 @@
 """
 赛博算命 - 五行命理计算核心模块
 实现基于生辰八字的五行分析、大运计算、神煞判定等功能
+支持从数据库读取配置数据
 """
 
 from datetime import datetime, timedelta
 import random
 import math
+import sys
+import os
+
+# 添加项目路径
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+# 导入数据库服务
+try:
+    from db_service import config_service, knowledge_service, display_service
+    DB_AVAILABLE = True
+except ImportError:
+    DB_AVAILABLE = False
 
 
 class FiveElementsCalculator:
@@ -359,6 +372,41 @@ class FiveElementsCalculator:
         else:
             return '身弱型'
     
+    def _get_wuxing_mapping(self):
+        """
+        从数据库获取五行映射配置
+        
+        Returns:
+            dict: 五行映射配置（颜色、方向、数字）
+        """
+        if DB_AVAILABLE:
+            return config_service.get_config('wuxing_mapping')
+        
+        # 默认配置
+        return {
+            'colors': {
+                '木': [{'name': '绿色', 'colorClass': 'bg-green-200'}, {'name': '青色', 'colorClass': 'bg-cyan-200'}],
+                '火': [{'name': '红色', 'colorClass': 'bg-red-200'}, {'name': '粉色', 'colorClass': 'bg-pink-200'}],
+                '土': [{'name': '黄色', 'colorClass': 'bg-luckyEarth'}, {'name': '棕色', 'colorClass': 'bg-amber-200'}],
+                '金': [{'name': '白色', 'colorClass': 'bg-luckyMetal'}, {'name': '金色', 'colorClass': 'bg-yellow-100'}],
+                '水': [{'name': '黑色', 'colorClass': 'bg-gray-300'}, {'name': '蓝色', 'colorClass': 'bg-blue-200'}]
+            },
+            'directions': {
+                '木': ['正东', '东南'],
+                '火': ['正南'],
+                '土': ['家乡', '中部'],
+                '金': ['正西', '西北'],
+                '水': ['正北']
+            },
+            'numbers': {
+                '木': ['3', '8'],
+                '火': ['2', '7'],
+                '土': ['5', '10'],
+                '金': ['4', '9'],
+                '水': ['1', '6']
+            }
+        }
+    
     def _calculate_lucky_elements(self, five_elements, body_type):
         """
         计算喜用神
@@ -387,32 +435,12 @@ class FiveElementsCalculator:
         # 去重
         lucky_elements = list(set(lucky_elements))[:2]
         
-        # 五行对应的颜色
-        element_colors = {
-            '木': [{'name': '绿色', 'colorClass': 'bg-green-200'}, {'name': '青色', 'colorClass': 'bg-cyan-200'}],
-            '火': [{'name': '红色', 'colorClass': 'bg-red-200'}, {'name': '粉色', 'colorClass': 'bg-pink-200'}],
-            '土': [{'name': '黄色', 'colorClass': 'bg-luckyEarth'}, {'name': '棕色', 'colorClass': 'bg-amber-200'}],
-            '金': [{'name': '白色', 'colorClass': 'bg-luckyMetal'}, {'name': '金色', 'colorClass': 'bg-yellow-100'}],
-            '水': [{'name': '黑色', 'colorClass': 'bg-gray-300'}, {'name': '蓝色', 'colorClass': 'bg-blue-200'}]
-        }
+        # 从数据库获取五行映射配置
+        wuxing_mapping = self._get_wuxing_mapping()
         
-        # 五行对应的方向
-        element_directions = {
-            '木': ['正东', '东南'],
-            '火': ['正南'],
-            '土': ['家乡', '中部'],
-            '金': ['正西', '西北'],
-            '水': ['正北']
-        }
-        
-        # 五行对应的数字
-        element_numbers = {
-            '木': ['3', '8'],
-            '火': ['2', '7'],
-            '土': ['5', '10'],
-            '金': ['4', '9'],
-            '水': ['1', '6']
-        }
+        element_colors = wuxing_mapping.get('colors', {})
+        element_directions = wuxing_mapping.get('directions', {})
+        element_numbers = wuxing_mapping.get('numbers', {})
         
         lucky_colors = []
         lucky_directions = []
@@ -442,6 +470,27 @@ class FiveElementsCalculator:
             'luckyNumbers': lucky_numbers
         }
     
+    def _get_pattern_config(self):
+        """
+        从数据库获取格局配置
+        
+        Returns:
+            dict: 格局模板配置
+        """
+        if DB_AVAILABLE:
+            return config_service.get_config('pattern')
+        
+        # 默认配置
+        return {
+            'templates': [
+                {'title': '【乘风破浪】', 'pattern': '正官格·贵气盈门', 'description': '正气凛然，贵人相助，事业顺遂。'},
+                {'title': '【厚积薄发】', 'pattern': '正印格·文华显耀', 'description': '学识渊博，智慧超群，文运亨通。'},
+                {'title': '【柳暗花明】', 'pattern': '偏财格·财源广进', 'description': '财运亨通，投资有道，收益丰厚。'},
+                {'title': '【逆流而上】', 'pattern': '七杀格·威震四方', 'description': '意志坚定，勇往直前，成就非凡。'},
+                {'title': '【静待花开】', 'pattern': '食神格·福禄双全', 'description': '生活安逸，福禄兼得，晚年享福。'}
+            ]
+        }
+    
     def _determine_pattern(self, bazi, five_elements):
         """
         判断命格格局
@@ -457,6 +506,21 @@ class FiveElementsCalculator:
         seed = hash(f"{bazi['year_ganzhi']}{bazi['month_ganzhi']}{bazi['day_ganzhi']}") % 1000
         random.seed(seed)
         
+        # 从数据库获取格局模板
+        pattern_config = self._get_pattern_config()
+        templates = pattern_config.get('templates', [])
+        
+        if templates:
+            # 使用数据库中的模板
+            idx = seed % len(templates)
+            template = templates[idx]
+            return {
+                'title': template.get('title', self.PATTERN_TITLES[0]),
+                'pattern': template.get('pattern', self.PATTERN_TYPES[0]),
+                'description': template.get('description', self.PATTERN_DESCRIPTIONS[0])
+            }
+        
+        # 回退到默认配置
         title_idx = seed % len(self.PATTERN_TITLES)
         type_idx = (seed // 10) % len(self.PATTERN_TYPES)
         desc_idx = (seed // 100) % len(self.PATTERN_DESCRIPTIONS)
@@ -536,6 +600,27 @@ class FiveElementsCalculator:
         else:  # diff == 4
             return '偏印' if same_yinyang else '正印'
     
+    def _get_shensha_config(self):
+        """
+        从数据库获取神煞配置
+        
+        Returns:
+            dict: 神煞配置
+        """
+        if DB_AVAILABLE:
+            return config_service.get_config('shensha_config')
+        
+        # 默认配置
+        return {
+            'items': [
+                {'name': '贵人相助', 'description': '天乙贵人、福星贵人', 'icon': 'fa-star', 'iconBg': 'bg-orange-100', 'iconColor': 'text-orange-500'},
+                {'name': '慧根发达', 'description': '太极贵人', 'icon': 'fa-brain', 'iconBg': 'bg-blue-100', 'iconColor': 'text-blue-500'},
+                {'name': '张力满满', 'description': '桃花', 'icon': 'fa-heart', 'iconBg': 'bg-yellow-100', 'iconColor': 'text-yellow-500'},
+                {'name': '天选领导', 'description': '禄神', 'icon': 'fa-crown', 'iconBg': 'bg-pink-100', 'iconColor': 'text-pink-500'},
+                {'name': '旷世奇才', 'description': '学堂', 'icon': 'fa-graduation-cap', 'iconBg': 'bg-sky-100', 'iconColor': 'text-sky-500'}
+            ]
+        }
+    
     def _calculate_shensha(self, bazi):
         """
         计算神煞
@@ -546,56 +631,81 @@ class FiveElementsCalculator:
         Returns:
             dict: 神煞信息
         """
+        # 从数据库获取神煞配置
+        shensha_config = self._get_shensha_config()
+        config_items = shensha_config.get('items', [])
+        
         items = []
         
         # 天乙贵人
         tianyi_guis = self._get_tianyi_gui(bazi['day_gan'])
         if tianyi_guis:
-            items.append({
-                'name': '贵人相助',
-                'description': '天乙贵人、福星贵人',
-                'icon': 'fa-star',
-                'iconBg': 'bg-orange-100',
-                'iconColor': 'text-orange-500'
-            })
+            # 从配置中查找对应的神煞项
+            gui_item = next((item for item in config_items if '贵人' in item.get('name', '')), None)
+            if gui_item:
+                items.append(gui_item)
+            else:
+                items.append({
+                    'name': '贵人相助',
+                    'description': '天乙贵人、福星贵人',
+                    'icon': 'fa-star',
+                    'iconBg': 'bg-orange-100',
+                    'iconColor': 'text-orange-500'
+                })
         
         # 太极贵人
-        items.append({
-            'name': '慧根发达',
-            'description': '太极贵人',
-            'icon': 'fa-brain',
-            'iconBg': 'bg-blue-100',
-            'iconColor': 'text-blue-500'
-        })
+        taiji_item = next((item for item in config_items if '慧根' in item.get('name', '')), None)
+        if taiji_item:
+            items.append(taiji_item)
+        else:
+            items.append({
+                'name': '慧根发达',
+                'description': '太极贵人',
+                'icon': 'fa-brain',
+                'iconBg': 'bg-blue-100',
+                'iconColor': 'text-blue-500'
+            })
         
         # 桃花
         taohua = self._get_taohua(bazi)
         if taohua:
-            items.append({
-                'name': '张力满满',
-                'description': '桃花',
-                'icon': 'fa-heart',
-                'iconBg': 'bg-yellow-100',
-                'iconColor': 'text-yellow-500'
-            })
+            taohua_item = next((item for item in config_items if '桃花' in item.get('description', '')), None)
+            if taohua_item:
+                items.append(taohua_item)
+            else:
+                items.append({
+                    'name': '张力满满',
+                    'description': '桃花',
+                    'icon': 'fa-heart',
+                    'iconBg': 'bg-yellow-100',
+                    'iconColor': 'text-yellow-500'
+                })
         
         # 禄神
-        items.append({
-            'name': '天选领导',
-            'description': '禄神',
-            'icon': 'fa-crown',
-            'iconBg': 'bg-pink-100',
-            'iconColor': 'text-pink-500'
-        })
+        lu_item = next((item for item in config_items if '禄神' in item.get('description', '')), None)
+        if lu_item:
+            items.append(lu_item)
+        else:
+            items.append({
+                'name': '天选领导',
+                'description': '禄神',
+                'icon': 'fa-crown',
+                'iconBg': 'bg-pink-100',
+                'iconColor': 'text-pink-500'
+            })
         
         # 学堂
-        items.append({
-            'name': '旷世奇才',
-            'description': '学堂',
-            'icon': 'fa-graduation-cap',
-            'iconBg': 'bg-sky-100',
-            'iconColor': 'text-sky-500'
-        })
+        xuetang_item = next((item for item in config_items if '学堂' in item.get('description', '')), None)
+        if xuetang_item:
+            items.append(xuetang_item)
+        else:
+            items.append({
+                'name': '旷世奇才',
+                'description': '学堂',
+                'icon': 'fa-graduation-cap',
+                'iconBg': 'bg-sky-100',
+                'iconColor': 'text-sky-500'
+            })
         
         return {
             'title': '神煞解析',
@@ -632,6 +742,75 @@ class FiveElementsCalculator:
         }
         return taohua_map.get(bazi['year_zhi'], '')
     
+    def _get_industry_mapping(self):
+        """
+        从数据库获取行业映射配置
+        
+        Returns:
+            dict: 行业映射配置
+        """
+        if DB_AVAILABLE:
+            return config_service.get_config('industry_mapping')
+        
+        # 默认配置
+        return {
+            'industries': {
+                '木': '文化教育、医疗卫生、艺术设计、农林牧渔',
+                '火': '电子科技、餐饮娱乐、照明电力、美容美发',
+                '土': '房地产、建筑工程、农业种植、政府部门',
+                '金': '金融投资、法律咨询、机械制造、珠宝首饰',
+                '水': '物流运输、旅游酒店、饮料饮品、水产养殖'
+            }
+        }
+    
+    def _get_fortune_tags(self):
+        """
+        从数据库获取大运评语配置
+        
+        Returns:
+            dict: 大运评语配置
+        """
+        if DB_AVAILABLE:
+            return config_service.get_config('fortune_tags')
+        
+        # 默认配置
+        return {
+            'tags': [
+                {'score_range': [90, 100], 'tags': ['智慧通达 德才并举', '福星高照 万事如意', '鹏程万里 前程似锦']},
+                {'score_range': [80, 89], 'tags': ['根深叶茂 贵人垂青', '福泽绵长 贵人护业', '鸿运当头 吉星拱照']},
+                {'score_range': [70, 79], 'tags': ['稳中求进 渐入佳境', '安守本心 心宽事顺', '柳暗花明 豁然开朗']},
+                {'score_range': [60, 69], 'tags': ['韬光养晦 厚积薄发', '稳扎稳打 步步为营', '循序渐进 稳中求胜']},
+                {'score_range': [0, 59], 'tags': ['否极泰来 转危为安', '韬光养晦 等待时机', '收敛低调 蓄势待发']}
+            ]
+        }
+    
+    def _get_fortune_tag_by_score(self, score, seed):
+        """
+        根据评分获取大运评语
+        
+        Args:
+            score: 评分
+            seed: 随机种子
+        
+        Returns:
+            str: 大运评语
+        """
+        fortune_config = self._get_fortune_tags()
+        tags_list = fortune_config.get('tags', [])
+        
+        # 根据评分查找对应的评语组
+        for tag_group in tags_list:
+            score_range = tag_group.get('score_range', [0, 100])
+            if score_range[0] <= score <= score_range[1]:
+                tags = tag_group.get('tags', [])
+                if tags:
+                    idx = seed % len(tags)
+                    return tags[idx]
+        
+        # 回退到默认评语
+        idx = seed % len(self.FORTUNE_TAGS)
+        return self.FORTUNE_TAGS[idx]
+    
     def calculate_fortune_periods(self):
         """
         计算大运周期
@@ -663,9 +842,8 @@ class FiveElementsCalculator:
             # 评分（基于某些规则生成）
             score = 50 + random.randint(0, 50)
             
-            # 评语
-            tag_idx = (seed + i * 7) % len(self.FORTUNE_TAGS)
-            tag = self.FORTUNE_TAGS[tag_idx]
+            # 从数据库获取评语
+            tag = self._get_fortune_tag_by_score(score, seed + i * 7)
             
             periods.append({
                 'age': age_str,
@@ -682,14 +860,15 @@ class FiveElementsCalculator:
         """
         day_element = self.day_master_element
         
-        # 适配行业
-        industry_map = {
+        # 从数据库获取行业映射
+        industry_config = self._get_industry_mapping()
+        industry_map = industry_config.get('industries', {
             '木': '文化教育、医疗卫生、艺术设计、农林牧渔',
             '火': '电子科技、餐饮娱乐、照明电力、美容美发',
             '土': '房地产、建筑工程、农业种植、政府部门',
             '金': '金融投资、法律咨询、机械制造、珠宝首饰',
             '水': '物流运输、旅游酒店、饮料饮品、水产养殖'
-        }
+        })
         
         # 找出最旺的五行
         elements_sorted = sorted(
