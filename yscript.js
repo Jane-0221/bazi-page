@@ -22,7 +22,7 @@ let elements = {};
 document.addEventListener('DOMContentLoaded', function() {
     initElements();
     initEventListeners();
-    initPage();
+    // HTML 中的 initPage 会自动处理初始渲染
 });
 
 /**
@@ -74,9 +74,9 @@ function initEventListeners() {
 }
 
 /**
- * 初始化页面
+ * 检查缓存并渲染
  */
-function initPage() {
+function checkCacheAndRender() {
     // 如果有缓存的查询结果，直接显示
     const cachedResult = sessionStorage.getItem('fortuneResult');
     if (cachedResult) {
@@ -215,28 +215,158 @@ async function queryFortune(formData) {
  * 渲染查询结果
  */
 function renderResult(data) {
-    if (!data || !elements.resultSection) return;
+    if (!data) return;
     
-    // 显示结果区域
-    elements.resultSection.classList.add('show');
+    console.log('渲染数据:', data);
     
-    // 更新全局配置
-    if (data.config) {
-        Object.assign(CONFIG, data.config);
-    }
+    // 更新全局配置对象
+    if (data.page) CONFIG.page = data.page;
+    if (data.colors) CONFIG.colors = data.colors;
+    if (data.nav) CONFIG.nav = data.nav;
+    if (data.pattern) CONFIG.pattern = data.pattern;
+    if (data.fiveElements) CONFIG.fiveElements = data.fiveElements;
+    if (data.lucky) CONFIG.lucky = data.lucky;
+    if (data.match) CONFIG.match = data.match;
+    if (data.fortune) CONFIG.fortune = data.fortune;
+    if (data.shishen) CONFIG.shishen = data.shishen;
+    if (data.shensha) CONFIG.shensha = data.shensha;
+    if (data.disclaimer) CONFIG.disclaimer = data.disclaimer;
+    if (data.footer) CONFIG.footer = data.footer;
     
-    // 重新初始化页面
+    // 调用 HTML 中定义的 initPage 函数重新渲染页面
     if (typeof initPage === 'function') {
         initPage();
     }
     
-    // 重新初始化图表
+    // 重新渲染图表
     if (typeof initCharts === 'function') {
         initCharts();
     }
     
+    // 显示结果区域
+    if (elements.resultSection) {
+        elements.resultSection.classList.add('show');
+    }
+    
     // 滚动到结果区域
-    elements.resultSection.scrollIntoView({ behavior: 'smooth' });
+    if (elements.resultSection) {
+        elements.resultSection.scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+/**
+ * 更新格局区域
+ */
+function updatePatternSection() {
+    const titleEl = document.querySelector('.pattern-title');
+    const patternEl = document.querySelector('.pattern-type');
+    const descEl = document.querySelector('.pattern-desc');
+    
+    if (titleEl) titleEl.textContent = CONFIG.pattern.title;
+    if (patternEl) patternEl.textContent = CONFIG.pattern.pattern;
+    if (descEl) descEl.textContent = CONFIG.pattern.description;
+}
+
+/**
+ * 更新五行区域
+ */
+function updateFiveElementsSection() {
+    const titleEl = document.querySelector('.five-elements-title');
+    if (titleEl) titleEl.textContent = CONFIG.fiveElements.title;
+    
+    // 更新五行图表
+    if (typeof renderFiveElementsChart === 'function') {
+        renderFiveElementsChart();
+    }
+}
+
+/**
+ * 更新喜用神区域
+ */
+function updateLuckySection() {
+    const titleEl = document.querySelector('.lucky-title');
+    if (titleEl) titleEl.textContent = CONFIG.lucky.title;
+    
+    // 更新幸运颜色
+    const colorsContainer = document.querySelector('.lucky-colors');
+    if (colorsContainer && CONFIG.lucky.luckyColors) {
+        colorsContainer.innerHTML = CONFIG.lucky.luckyColors.map(c => 
+            `<span class="${c.colorClass} px-3 py-1 rounded-full text-sm">${c.name}</span>`
+        ).join('');
+    }
+    
+    // 更新幸运方向
+    const dirsContainer = document.querySelector('.lucky-directions');
+    if (dirsContainer && CONFIG.lucky.luckyDirections) {
+        dirsContainer.innerHTML = CONFIG.lucky.luckyDirections.map(d => 
+            `<span class="bg-tagBg px-3 py-1 rounded-full text-sm">${d}</span>`
+        ).join('');
+    }
+    
+    // 更新幸运数字
+    const numsContainer = document.querySelector('.lucky-numbers');
+    if (numsContainer && CONFIG.lucky.luckyNumbers) {
+        numsContainer.innerHTML = CONFIG.lucky.luckyNumbers.map(n => 
+            `<span class="bg-tagBg px-3 py-1 rounded-full text-sm">${n}</span>`
+        ).join('');
+    }
+}
+
+/**
+ * 更新匹配区域
+ */
+function updateMatchSection() {
+    const industryEl = document.querySelector('.match-industry');
+    const partnerEl = document.querySelector('.match-partner');
+    
+    if (industryEl) industryEl.textContent = CONFIG.match.industry.content;
+    if (partnerEl) partnerEl.textContent = CONFIG.match.partner.content;
+}
+
+/**
+ * 更新大运区域
+ */
+function updateFortuneSection() {
+    if (typeof renderFortuneChart === 'function') {
+        renderFortuneChart();
+    }
+}
+
+/**
+ * 更新十神区域
+ */
+function updateShishenSection() {
+    if (typeof renderShishenChart === 'function') {
+        renderShishenChart();
+    }
+}
+
+/**
+ * 更新神煞区域
+ */
+function updateShenshaSection() {
+    const container = document.querySelector('.shensha-items');
+    if (container && CONFIG.shensha.items) {
+        container.innerHTML = CONFIG.shensha.items.map(item => `
+            <div class="flex items-center gap-3 p-3 bg-bgCard rounded-lg">
+                <div class="${item.iconBg} ${item.iconColor} w-10 h-10 rounded-full flex items-center justify-center">
+                    <i class="fa ${item.icon}"></i>
+                </div>
+                <div>
+                    <div class="font-bold text-textMain">${item.name}</div>
+                    <div class="text-sm text-textMain/70">${item.description}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+}
+
+/**
+ * 更新底部
+ */
+function updateFooter() {
+    const footerEl = document.querySelector('.footer-title');
+    if (footerEl) footerEl.textContent = CONFIG.footer.title;
 }
 
 /**

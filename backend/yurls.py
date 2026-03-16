@@ -47,7 +47,7 @@ def register_routes(app):
                 }), 400
             
             from datetime import datetime
-            from FiveMat import FiveElementsCalculator
+            from yFiveMat import FiveElementsCalculator
             
             birth_date = datetime.strptime(birthday, '%Y-%m-%d')
             birth_date = birth_date.replace(hour=hour)
@@ -83,7 +83,7 @@ def register_routes(app):
                 }), 400
             
             from datetime import datetime
-            from FiveMat import FiveElementsCalculator
+            from yFiveMat import FiveElementsCalculator
             
             birth_date = datetime.strptime(birthday, '%Y-%m-%d')
             calculator = FiveElementsCalculator(birth_date, data.get('gender', 'male'))

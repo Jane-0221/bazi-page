@@ -17,12 +17,12 @@ import logging
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # 导入业务模块
-from FiveMat import FiveElementsCalculator
-from urls import register_routes
+from yFiveMat import FiveElementsCalculator
+from yurls import register_routes
 
 # 导入数据库服务
 try:
-    from db_service import (
+    from ydb_service import (
         db_service, config_service, user_service, 
         query_service, knowledge_service, audit_service,
         display_service, init_database, check_database
@@ -506,7 +506,7 @@ def init_db():
         }), 503
     
     try:
-        from db_init import DatabaseInitializer
+        from ydb_init import DatabaseInitializer
         
         initializer = DatabaseInitializer()
         success = initializer.run()

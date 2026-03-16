@@ -11,11 +11,11 @@
     <!-- 引入图标库 -->
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
     <!-- 引入自定义样式 -->
-    <link href="style.css" rel="stylesheet">
+    <link href="ystyle.css" rel="stylesheet">
     <!-- 引入配置文件 -->
-    <script src="data.js"></script>
+    <script src="ydata.js"></script>
     <!-- 引入交互脚本 -->
-    <script src="script.js"></script>
+    <script src="yscript.js"></script>
     <!-- 自定义Tailwind配置 -->
     <script>
         tailwind.config = {
@@ -486,14 +486,31 @@
 
     <!-- 图表初始化脚本 -->
     <script>
+        // 图表实例存储
+        let fiveElementsChart = null;
+        let fortuneChart = null;
+        let shishenChart = null;
+        
         // 等待DOM加载完成
         document.addEventListener('DOMContentLoaded', function() {
             // 先初始化页面数据
             initPage();
             
+            // 初始化图表
+            initCharts();
+        });
+        
+        // 初始化所有图表
+        function initCharts() {
             // 1. 五行占比环形图
             const fiveElementsCtx = document.getElementById('fiveElementsChart').getContext('2d');
-            new Chart(fiveElementsCtx, {
+            
+            // 销毁旧图表
+            if (fiveElementsChart) {
+                fiveElementsChart.destroy();
+            }
+            
+            fiveElementsChart = new Chart(fiveElementsCtx, {
                 type: 'doughnut',
                 data: {
                     labels: CONFIG.fiveElements.elements.map(el => el.label),
@@ -536,7 +553,13 @@
 
             // 2. 大运评分柱状图
             const fortuneCtx = document.getElementById('fortuneChart').getContext('2d');
-            new Chart(fortuneCtx, {
+            
+            // 销毁旧图表
+            if (fortuneChart) {
+                fortuneChart.destroy();
+            }
+            
+            fortuneChart = new Chart(fortuneCtx, {
                 type: 'bar',
                 data: {
                     labels: CONFIG.fortune.periods.map(p => p.age.replace('岁', '')),
@@ -613,7 +636,13 @@
 
             // 3. 十神占比柱状图
             const shishenCtx = document.getElementById('shishenChart').getContext('2d');
-            new Chart(shishenCtx, {
+            
+            // 销毁旧图表
+            if (shishenChart) {
+                shishenChart.destroy();
+            }
+            
+            shishenChart = new Chart(shishenCtx, {
                 type: 'bar',
                 data: {
                     labels: CONFIG.shishen.labels,

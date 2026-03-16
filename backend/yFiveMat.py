@@ -17,7 +17,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # 导入数据库服务
 try:
-    from db_service import config_service, knowledge_service, display_service
+    from ydb_service import config_service, knowledge_service, display_service
     DB_AVAILABLE = True
 except ImportError:
     DB_AVAILABLE = False
