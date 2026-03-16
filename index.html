@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>八字命理分析 - 个人专属</title>
+    <style>
+        :root {
+            --bg-main: #F8F0E3;
+            --bg-card: #EDE3D3;
+            --bg-chart: #FAF6F0;
+            --text-primary: #4A3728;
+            --text-secondary: #6B5344;
+            --shadow: 0 4px 16px rgba(74, 55, 40, 0.12);
+            --radius: 16px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: var(--bg-main);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding-bottom: 80px;
+        }
+
+        /* 顶部导航 */
+        .top-nav {
+            background: var(--bg-main);
+            padding: 16px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(74, 55, 40, 0.06);
+        }
+
+        .nav-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+            text-align: center;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 12px;
+        }
+
+        .nav-tab {
+            padding: 8px 16px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-tab.active {
+            background: var(--text-primary);
+            color: var(--bg-main);
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .nav-btn {
+            padding: 10px 20px;
+            border: 1px solid var(--text-secondary);
+            background: transparent;
+            color: var(--text-primary);
+            border-radius: 24px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .nav-btn:hover {
+            background: var(--text-primary);
+            color: var(--bg-main);
+        }
+
+        /* 通用卡片 */
+        .card {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin: 16px 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        /* 格局区块 */
+        .pattern-section .pattern {
+            font-size: 18px;
+            color: #8B5A2B;
+            text-align: center;
+            margin-bottom: 12px;
+        }
+
+        .pattern-section .interpretation {
+            font-size: 14px;
+            color: var(--text-secondary);
+            text-align: center;
+            line-height: 1.8;
+        }
+
+        /* 身弱型区块 */
+        .body-type-section {
+            background: var(--bg-card);
+            border-radius: var(--radius);
+            margin: 16px 20px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .five-elements-chart {
+            background: var(--bg-chart);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .element-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .element-circle {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .element-fire { background: #FFCCCC; color: #8B4513; }
+        .element-wood { background: #D4E6C1; color: #556B2F; }
+        .element-water { background: #C5E1F7; color: #4682B4; }
+        .element-gold { background: #FFF8DC; color: #B8860B; }
+        .element-earth { background: #E8DCC8; color: #8B7355; }
+
+        .element-name {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+
+        .element-ratio {
+            font-size: 11px;
+            color: var(--text-primary);
+            font-weight: bold;
+        }
+
+        /* 喜用神区块 */
+        .favorite-god-section .lucky-info {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin-top: 12px;
+        }
+
+        .lucky-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .color-circles {
+            display: flex;
+            gap: 8px;
+        }
+
+        .color-circle {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            color: var(--text-primary);
+        }
+
+        .color-earth { background: #FFE4B5; }
+        .color-gold { background: #FFFEF0; border: 1px solid #E8DCC8; }
+
+        .direction-tags, .number-tags {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .tag {
+            padding: 6px 12px;
+            background: var(--bg-chart);
+            border-radius: 16px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* 适配区块 */
+        .fit-match-section .fit-content {
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .fit-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+            min-width: 140px;
+        }
+
+        .icon-circle {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .icon-briefcase { background: #C5E1F7; }
+        .icon-heart { background: #FFCCE5; }
+
+        .fit-text {
+            font-size: 13px;
+            color: var(--text-secondary);
+            text-align: center;
+            line-height: 1.6;
+        }
+
+        /* 大运区块 */
+        .great-fortune-section .fortune-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .fortune-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: white;
+            border-radius: 12px;
+            padding: 12px 16px;
+        }
+
+        .age-range {
+            font-size: 12px;
+            color: var(--text-secondary);
+            width: 80px;
+        }
+
+        .fortune-pillar {
+            font-size: 14px;
+            font-weight: bold;
+            color: var(--text-primary);
+            width: 60px;
+        }
+
+        .fortune-bar-container {
+            flex: 1;
+            height: 24px;
+            background: #F0E8DC;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .fortune-bar {
+            height: 100%;
+            border-radius: 12px;
+            transition: width 0.5s ease;
+        }
+
+        .fortune-bar.high { background: linear-gradient(90deg, #FF8C00, #FFB347); }
+        .fortune-bar.medium { background: linear-gradient(90deg, #FFD700, #FFEC8B); }
+        .fortune-bar.low { background: linear-gradient(90deg, #DEB887, #F5DEB3); }
+
+        .fortune-score {
+            font-size: 14px;
+            font-weight: bold;
+            color: var(--text-primary);
+            width: 36px;
+            text-align: right;
+        }
+
+        .fortune-tag {
+            font-size: 11px;
+            color: var(--text-secondary);
+            width: 100px;
+            text-align: right;
+        }
+
+        /* 十神比例区块 */
+        .shishen-section .shishen-chart {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-end;
+            flex-wrap: wrap;
+            gap: 8px;
+            min-height: 160px;
+        }
+
+        .shishen-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .shishen-bar {
+            width: 28px;
+            border-radius: 6px 6px 0 0;
+            transition: height 0.5s ease;
+        }
+
+        .shishen-bar.gao { background: #FF8C00; }
+        .shishen-bar.gao2 { background: #FFA500; }
+        .shishen-bar.blue { background: #4A90D9; }
+        .shishen-bar.green { background: #5CB85C; }
+        .shishen-bar.green2 { background: #2E8B57; }
+        .shishen-bar.red { background: #DC3545; }
+        .shishen-bar.red2 { background: #B22222; }
+        .shishen-bar.brown { background: #D2B48C; }
+        .shishen-bar.brown2 { background: #8B7355; }
+
+        .shishen-name {
+            font-size: 10px;
+            color: var(--text-secondary);
+            writing-mode: vertical-lr;
+            text-orientation: mixed;
+            height: 50px;
+        }
+
+        .shishen-value {
+            font-size: 11px;
+            font-weight: bold;
+            color: var(--text-primary);
+        }
+
+        /* 神煞区块 */
+        .shensha-section .shensha-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .shensha-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: var(--bg-chart);
+            border-radius: 12px;
+        }
+
+        .shensha-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .shensha-icon.orange { background: #FFE4C4; }
+        .shensha-icon.blue { background: #C5E1F7; }
+        .shensha-icon.yellow { background: #FFFACD; }
+        .shensha-icon.pink { background: #FFCCE5; }
+        .shensha-icon.lightblue { background: #C4D8F0; }
+
+        .shensha-content {
+            flex: 1;
+        }
+
+        .shensha-tag {
+            font-size: 13px;
+            font-weight: bold;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .shensha-items {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* 免责声明 */
+        .disclaimer {
+            padding: 16px 20px;
+            text-align: center;
+            font-size: 11px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* 底部区块 */
+        .bottom-section {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 16px 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 -2px 12px rgba(74, 55, 40, 0.08);
+        }
+
+        .sun-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #FFB6C1, #FF69B4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: white;
+        }
+
+        .bottom-text {
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
+        /* 响应式 */
+        @media (max-width: 480px) {
+            .card {
+                margin: 12px 16px;
+                padding: 16px;
+            }
+            
+            .nav-tabs {
+                gap: 6px;
+            }
+            
+            .nav-tab {
+                padding: 6px 12px;
+                font-size: 13px;
+            }
+            
+            .fortune-item {
+                flex-wrap: wrap;
+            }
+            
+            .fortune-tag {
+                width: 100%;
+                text-align: left;
+                margin-top: 4px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航 -->
+    <nav class="top-nav">
+        <div class="nav-title">自己</div>
+        <div class="nav-tabs">
+            <button class="nav-tab active">沙盘</button>
+            <button class="nav-tab">星座</button>
+            <button class="nav-tab">生辰</button>
+            <button class="nav-tab">星宿</button>
+            <button class="nav-tab">紫微</button>
+        </div>
+        <div class="nav-buttons">
+            <button class="nav-btn">分享完整内容</button>
+            <button class="nav-btn">查看生辰历</button>
+        </div>
+    </nav>
+
+    <!-- 格局区块 -->
+    <section class="card pattern-section">
+        <div class="card-title">【这点痛算什么】</div>
+        <div class="pattern">偏财格·损根破格</div>
+        <div class="interpretation">起起伏伏坚韧如你，独自向前的你好似那孤胆英雄，总有一天能突破重围。</div>
+    </section>
+
+    <!-- 身弱型区块 -->
+    <section class="body-type-section">
+        <div class="card-title">【身弱型】</div>
+        <div class="five-elements-chart">
+            <div class="element-item">
+                <div class="element-circle element-fire">火</div>
+                <div class="element-name">七杀正官</div>
+                <div class="element-ratio">31%</div>
+            </div>
+            <div class="element-item">
+                <div class="element-circle element-wood">木</div>
+                <div class="element-name">偏财正财</div>
+                <div class="element-ratio">34%</div>
+            </div>
+            <div class="element-item">
+                <div class="element-circle element-water">水</div>
+                <div class="element-name">食神</div>
+                <div class="element-ratio">3%</div>
+            </div>
+            <div class="element-item">
+                <div class="element-circle element-gold">金</div>
+                <div class="element-name">比肩劫财<br>日主</div>
+                <div class="element-ratio">30%</div>
+            </div>
+            <div class="element-item">
+                <div class="element-circle element-earth">土</div>
+                <div class="element-name">偏印正印</div>
+                <div class="element-ratio">0%</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 喜用神区块 -->
+    <section class="card favorite-god-section">
+        <div class="card-title">【喜用土、金】</div>
+        <div class="lucky-info">
+            <div class="lucky-item">
+                <div class="color-circles">
+                    <div class="color-circle color-earth">土</div>
+                    <div class="color-circle color-gold">金</div>
+                </div>
+                <div class="element-name">喜用颜色</div>
+            </div>
+            <div class="lucky-item">
+                <div class="direction-tags">
+                    <span class="tag">家乡</span>
+                    <span class="tag">正西</span>
+                </div>
+                <div class="element-name">幸运方位</div>
+            </div>
+            <div class="lucky-item">
+                <div class="number-tags">
+                    <span class="tag">15</span>
+                    <span class="tag">8</span>
+                </div>
+                <div class="element-name">幸运数字</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 适配区块 -->
+    <section class="card fit-match-section">
+        <div class="fit-content">
+            <div class="fit-item">
+                <div class="icon-circle icon-briefcase">💼</div>
+                <div class="fit-text">企事业单位，从事政治、财政、高管类工作</div>
+            </div>
+            <div class="fit-item">
+                <div class="icon-circle icon-heart">💕</div>
+                <div class="fit-text">配偶星属木（日主为木/五行能量最高为木）</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 大运区块 -->
+    <section class="card great-fortune-section">
+        <div class="card-title">【大运走势】</div>
+        <div class="fortune-list">
+            <div class="fortune-item">
+                <span class="age-range">15-24岁</span>
+                <span class="fortune-pillar">戊辰</span>
+                <div class="fortune-bar-container">
+                    <div class="fortune-bar high" style="width: 98%;"></div>
+                </div>
+                <span class="fortune-score">98</span>
+                <span class="fortune-tag">智慧通达 德才并举</span>
+            </div>
+            <div class="fortune-item">
+                <span class="age-range">25-34岁</span>
+                <span class="fortune-pillar">己巳</span>
+                <div class="fortune-bar-container">
+                    <div class="fortune-bar high" style="width: 89%;"></div>
+                </div>
+                <span class="fortune-score">89</span>
+                <span class="fortune-tag">根深叶茂 贵人垂青</span>
+            </div>
+            <div class="fortune-item">
+                <span class="age-range">35-44岁</span>
+                <span class="fortune-pillar">庚午</span>
+                <div class="fortune-bar-container">
+                    <div class="fortune-bar high" style="width: 87%;"></div>
+                </div>
+                <span class="fortune-score">87</span>
+                <span class="fortune-tag">福泽绵长 贵人护业</span>
+            </div>
+            <div class="fortune-item">
+                <span class="age-range">45-54岁</span>
+                <span class="fortune-pillar">辛未</span>
+                <div class="fortune-bar-container">
+                    <div class="fortune-bar high" style="width: 98%;"></div>
+                </div>
+                <span class="fortune-score">98</span>
+                <span class="fortune-tag">捷足先登 气贯长虹</span>
+            </div>
+            <div class="fortune-item">
+                <span class="age-range">55-64岁</span>
+                <span class="fortune-pillar">壬申</span>
+                <div class="fortune-bar-container">
+                    <div class="fortune-bar medium" style="width: 64%;"></div>
+                </div>
+                <span class="fortune-score">64</span>
+                <span class="fortune-tag">安守本心 心宽事顺</span>
+            </div>
+            <div class="fortune-item">
+                <span class="age-range">65-7*岁</span>
+                <span class="fortune-pillar">癸*</span>
+                <div class="fortune-bar-container">
+                    <div class="fortune-bar low" style="width: 7%;"></div>
+                </div>
+                <span class="fortune-score">7</span>
+                <span class="fortune-tag">收敛 低调</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- 十神比例区块 -->
+    <section class="card shishen-section">
+        <div class="card-title">【十神分布】</div>
+        <div class="shishen-chart">
+            <div class="shishen-item">
+                <div class="shishen-bar gao2" style="height: 24px;"></div>
+                <div class="shishen-name">比肩</div>
+                <div class="shishen-value">8%</div>
+            </div>
+            <div class="shishen-item">
+                <div class="shishen-bar gao2" style="height: 24px;"></div>
+                <div class="shishen-name">劫财</div>
+                <div class="shishen-value">8%</div>
+            </div>
+            <div class="shishen-item">
+                <div class="shishen-bar blue" style="height: 24px;"></div>
+                <div class="shishen-name">食神</div>
+                <div class="shishen-value">8%</div>
+            </div>
+            <div class="shishen-item">
+                <div class="shishen-bar" style="height: 0px; background: transparent;"></div>
+                <div class="shishen-name">伤官</div>
+                <div class="shishen-value">0%</div>
+            </div>
+            <div class="shishen-item">
+                <div class="shishen-bar green" style="height: 24px;"></div>
+                <div class="shishen-name">正财</div>
+                <div class="shishen-value">8%</div>
+            </div>
+            <div class="shishen-item">
+                <div class="shishen-bar green2" style="height: 48px;"></div>
+                <div class="shishen-name">偏财</div>
+                <div class="shishen-value">16%</div>
+            </div>
+            <div class="shishen-item">
+                <div class="shishen-bar red" style="height: 24px;"></div>
+                <div class="shishen-name">正官</div>
+                <div class="shishen-value">8%</div>
+            </div>
+            <div class="shishen-item">
+                <div class="shishen-bar red2" style="height: 48px;"></div>
+                <div class="shishen-name">七杀</div>
+                <div class="shishen-value">16%</div>
+            </div>
+            <div class="shishen-item">
+                <div class="shishen-bar brown" style="height: 24px;"></div>
+                <div class="shishen-name">正印</div>
+                <div class="shishen-value">8%</div>
+            </div>
+            <div class="shishen-item">
+                <div class="shishen-bar brown2" style="height: 48px;"></div>
+                <div class="shishen-name">偏印</div>
+                <div class="shishen-value">16%</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 神煞区块 -->
+    <section class="card shensha-section">
+        <div class="card-title">【神煞解读】</div>
+        <div class="shensha-list">
+            <div class="shensha-item">
+                <div class="shensha-icon orange">🌟</div>
+                <div class="shensha-content">
+                    <div class="shensha-tag">贵人相助</div>
+                    <div class="shensha-items">天乙贵人、福星贵人</div>
+                </div>
+            </div>
+            <div class="shensha-item">
+                <div class="shensha-icon blue">🧠</div>
+                <div class="shensha-content">
+                    <div class="shensha-tag">慧根发达</div>
+                    <div class="shensha-items">太极贵人</div>
+                </div>
+            </div>
+            <div class="shensha-item">
+                <div class="shensha-icon yellow">⚡</div>
+                <div class="shensha-content">
+                    <div class="shensha-tag">张力满满</div>
+                    <div class="shensha-items">桃花</div>
+                </div>
+            </div>
+            <div class="shensha-item">
+                <div class="shensha-icon pink">👑</div>
+                <div class="shensha-content">
+                    <div class="shensha-tag">天选领导</div>
+                    <div class="shensha-items">禄神</div>
+                </div>
+            </div>
+            <div class="shensha-item">
+                <div class="shensha-icon lightblue">📚</div>
+                <div class="shensha-content">
+                    <div class="shensha-tag">旷世奇才</div>
+                    <div class="shensha-items">学堂</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 免责声明 -->
+    <div class="disclaimer">
+        当前内容为免费内容，仅供您在娱乐中探索自我，不等于专业测评，不代表价值评判，无任何现实指导意义。
+    </div>
+
+    <!-- 底部区块 -->
+    <div class="bottom-section">
+        <div class="sun-icon">☀</div>
+        <span class="bottom-text">日支·正官</span>
+    </div>
+</body>
+</html>
